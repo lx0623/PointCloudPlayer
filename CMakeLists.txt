@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.12)
+project(PointCloudPlayer LANGUAGES CUDA CXX)
+include_directories(/usr/local/cuda/samples/common/inc)
+include_directories(/usr/local/cuda/include/)
+find_package(glfw3 REQUIRED)
+add_library(decoderlib STATIC CUDA2OpenGL.cu)
+add_executable(player.out Application.cpp)
+target_link_libraries(player.out PUBLIC decoderlib glfw GL GLEW)
