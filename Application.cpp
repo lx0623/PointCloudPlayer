@@ -245,7 +245,7 @@ int main(void)
 	glGenBuffers(1, &VBO);
 	///顶点数据存储到缓冲
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);//绑定VBO为顶点缓冲类型
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Points), &vertices[0], GL_DYNAMIC_DRAW);// 1、缓存区将用于存储顶点数组；2、数据的总字节数；3、顶点数组的地址；4、告诉编译器所绘制的数据几乎不变
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Points), &vertices[0], GL_DYNAMIC_DRAW);// 1、缓存区将用于存储顶点数组；2、数据的总字节数；3、顶点数组的地址；4、告诉编译器所绘制的数据动态可变
 	
 	///设置顶点属性指针，解析顶点数据用
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Points), (void*)0);//1、顶点属性的位置值；2、顶点属性的大小；3、数据类型；4、是否要标准化；5、步长，指顶点属性每组之间的间隔；6、位置数据在缓冲中起始位置的偏移量
@@ -292,8 +292,8 @@ int main(void)
 	const char* fragmentShaderSource =	//片段着色器源码
 		"#version 330 core\n"
 		"in vec3 fragPos;\n"
-		"out vec4 FragColor;\n"
-		"uniform vec3 myColor;\n"//颜色向量
+		"out vec4 FragColor;\n"//颜色向量
+		"uniform vec3 myColor;\n"
 		"void main()\n"
 		"{\n"
 		"FragColor = vec4(fragPos.x, fragPos.y, fragPos.z, 1.0f);\n"//控制输出的颜色，四个分量分别表示R，G，B和A（alpha）
