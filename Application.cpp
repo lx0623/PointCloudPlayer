@@ -22,8 +22,18 @@
 #include <helper_functions.h>
 #include<rendercheck_gl.h>
 
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess)
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
 
 #pragma region 全局变量
+
 // // CUDA 共享的内存对象
 cudaGraphicsResource_t cudaGraphicsResourcePtr;
 // //窗口参数
@@ -185,11 +195,17 @@ int main(void)
 	std::vector<Points> vertices;//点数据容器对象
 	std::ifstream ifs;//文件流对象
 	///读取文件
-	ifs.open("../longdress_1055.txt", std::ios::in);//1、文件所在路径(使用了相对路径)；2、文件以输入方式打开(文件数据输入到内存)
+	// ifs.open("../longdress_1051.txt", std::ios::in);//1、文件所在路径(使用了相对路径)；2、文件以输入方式打开(文件数据输入到内存)
+	ifs.open("/mnt/data/pcdataset/8idataset/longdress/longdress_vox10_1051.ply", std::ios::in);
+        
 	if (!ifs.is_open())
 	{
 		std::cout << "文件打开失败！" << std::endl;
 		return -1;
+	}
+
+	for (int i = 0; i < 14; ++i) {
+		ifs.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 	}
 
 	struct Points tempPoint, tempOtherData;//临时存储数据对象
@@ -241,13 +257,13 @@ int main(void)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// 注册OpenGL缓冲区对象到CUDA
-	cudaGraphicsGLRegisterBuffer(&cudaGraphicsResourcePtr, VBO, cudaGraphicsMapFlagsNone);
+	gpuErrchk(cudaGraphicsGLRegisterBuffer(&cudaGraphicsResourcePtr, VBO, cudaGraphicsMapFlagsNone));
 	
 	// 将OpenGL缓冲区对象映射到CUDA
-	cudaGraphicsMapResources(1, &cudaGraphicsResourcePtr, 0);
+	// gpuErrchk(cudaGraphicsMapResources(1, &cudaGraphicsResourcePtr, 0));
 	int* cudaData = nullptr;
 	size_t numBytes = 0;
-	cudaGraphicsResourceGetMappedPointer((void**)&cudaData, &numBytes, cudaGraphicsResourcePtr);
+	// gpuErrchk(cudaGraphicsResourceGetMappedPointer((void**)&cudaData, &numBytes, cudaGraphicsResourcePtr));
 	
 	// 在CUDA中进行计算
 	int numElements = vertices.size();
@@ -345,17 +361,20 @@ int main(void)
 		glBindVertexArray(VAO);//绑定VAO
 		glPointSize(1.0);//设置点的大小
 		glUniform3f(glGetUniformLocation(shaderProgram, "myColor"), 0.1, 3.0, 0.8);
+		printf("frame_size = %d\n",frame_size);
 		glDrawArrays(GL_POINTS, 0, frame_size);//顺序绘制/有序渲染。1、指定点的拓扑结构，GL_POINTS 意味着顶点缓冲区中的每一个顶点都被绘制成一个点；2、第一个顶点的索引值；3、用于绘制的顶点数量
 		frame_number++;
 		glfwSwapBuffers(window);//检测有没有触发事件
 		glfwPollEvents();//交换颜色缓冲，避免图像闪烁
 
+		gpuErrchk(cudaGraphicsMapResources(1, &cudaGraphicsResourcePtr, 0));
+		gpuErrchk(cudaGraphicsResourceGetMappedPointer((void**)&cudaData, &numBytes, cudaGraphicsResourcePtr));
 		// 利用 CUDA 更新缓冲区内的数值
 		launch_cudaProcess(numBlocks, blockSize, cudaData, numElements, frame_number);
 		// 同步CUDA
-		cudaDeviceSynchronize();
+		gpuErrchk(cudaDeviceSynchronize());
 		// 将结果从CUDA复制回OpenGL缓冲区
-		cudaGraphicsUnmapResources(1, &cudaGraphicsResourcePtr, 0);
+		gpuErrchk(cudaGraphicsUnmapResources(1, &cudaGraphicsResourcePtr, 0));
 
 		std::cout << frame_number << "渲染完成" << std::endl;
 
